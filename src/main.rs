@@ -35,7 +35,7 @@ struct Info {
     album: String,
     track: String,
     song: String,
-    ext: String,
+    ext: Option<String>,
 }
 
 fn main() -> Result<(), Error> {
@@ -75,11 +75,13 @@ fn main() -> Result<(), Error> {
                 let album = String::from(tag.album_title().unwrap_or(""));
                 let track = format!("{}", tag.track_number().unwrap_or(0));
                 let song = String::from(tag.title().unwrap_or(""));
-                let ext = String::from(if filename.ends_with(".mp3") {
-                    "mp3"
-                } else {
-                    "flac"
-                });
+                let mut ext = None;
+                if filename.ends_with(".mp3") {
+                    ext = Some(String::from("mp3"));
+                }
+                if filename.ends_with(".flac") {
+                    ext = Some(String::from("flag"));
+                }
                 Some(Info {
                     artist,
                     album,
@@ -94,7 +96,7 @@ fn main() -> Result<(), Error> {
                     let album = String::from(captures.get(2).map_or("", |m| m.as_str()));
                     let track = String::from(captures.get(3).map_or("", |m| m.as_str()));
                     let song = String::from(captures.get(4).map_or("", |m| m.as_str()));
-                    let ext = String::from(captures.get(5).map_or("", |m| m.as_str()));
+                    let ext = Some(String::from(captures.get(5).map_or("", |m| m.as_str())));
                     Some(Info {
                         artist,
                         album,
@@ -110,6 +112,11 @@ fn main() -> Result<(), Error> {
             if let Some(info) = info {
                 let (artist, album, track, song, ext) =
                     (info.artist, info.album, info.track, info.song, info.ext);
+                if (ext.is_none()) {
+                    eprintln!("Extension not found for file {} ", path.path().display());
+                    continue;
+                }
+                let ext = ext.unwrap();
                 println!("Filename : {}", filename);
                 println!("Artist   : {}", artist);
                 println!("Album    : {}", album);
@@ -142,7 +149,7 @@ fn main() -> Result<(), Error> {
 
                 if args.copy {
                     let result = fs::copy(&path.path(), &dir);
-                    if (result.is_err()) {
+                    if result.is_err() {
                         eprintln!(
                             "Error copying file {} to {}",
                             path.path().display(),
