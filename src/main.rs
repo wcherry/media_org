@@ -69,6 +69,7 @@ fn main() -> Result<(), Error> {
         } else {
             let filename = filename.to_str().unwrap();
             let info: Option<Info> = if args.metadata {
+                println!("Working {}", path.path().display());
                 let tag = Tag::new().read_from_path(path.path()).unwrap();
                 let artist = String::from(tag.artist().unwrap_or(""));
                 let album = String::from(tag.album_title().unwrap_or(""));
