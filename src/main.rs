@@ -70,18 +70,22 @@ fn main() -> Result<(), Error> {
             let filename = filename.to_str().unwrap();
             let info: Option<Info> = if args.metadata {
                 println!("Working {}", path.path().display());
-                let tag = Tag::new().read_from_path(path.path()).unwrap();
-                let artist = String::from(tag.artist().unwrap_or(""));
-                let album = String::from(tag.album_title().unwrap_or(""));
-                let track = format!("{}", tag.track_number().unwrap_or(0));
-                let song = String::from(tag.title().unwrap_or(""));
                 let mut ext = None;
                 if filename.ends_with(".mp3") {
                     ext = Some(String::from("mp3"));
                 }
                 if filename.ends_with(".flac") {
-                    ext = Some(String::from("flag"));
+                    ext = Some(String::from("flac"));
                 }
+                if (ext.is_none()) {
+                    eprintln!("Extension not suppoted for file {} ", path.path().display());
+                    continue;
+                }
+                let tag = Tag::new().read_from_path(path.path()).unwrap();
+                let artist = String::from(tag.artist().unwrap_or(""));
+                let album = String::from(tag.album_title().unwrap_or(""));
+                let track = format!("{}", tag.track_number().unwrap_or(0));
+                let song = String::from(tag.title().unwrap_or(""));
                 Some(Info {
                     artist,
                     album,
