@@ -120,8 +120,10 @@ fn main() -> Result<(), Error> {
                 dir.push(&artist);
                 if !directories.contains_key(&dir) {
                     //mkdir dir
-                    eprintln!("Make dir {}", dir.display());
-                    fs::create_dir(&dir)?;
+                    if !dir.exists() {
+                        eprintln!("Make dir {}", dir.display());
+                        fs::create_dir(&dir)?;
+                    }
                     directories.insert(dir, true);
                 }
                 let mut dir = PathBuf::from(&output_dir);
@@ -129,8 +131,10 @@ fn main() -> Result<(), Error> {
                 dir.push(&album);
                 if !directories.contains_key(&dir) {
                     //mkdir dir
-                    eprintln!("Make dir {}", dir.display());
-                    fs::create_dir(&dir)?;
+                    if !dir.exists() {
+                        eprintln!("Make dir {}", dir.display());
+                        fs::create_dir(&dir)?;
+                    }
                     directories.insert(dir.clone(), true);
                 }
                 dir.push(format!("{track} {song}.{ext}"));
