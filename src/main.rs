@@ -141,7 +141,14 @@ fn main() -> Result<(), Error> {
                 dir.push(format!("{track} {song}.{ext}"));
 
                 if args.copy {
-                    fs::copy(&path.path(), &dir)?;
+                    let result = fs::copy(&path.path(), &dir);
+                    if (result.is_err()) {
+                        eprintln!(
+                            "Error copying file {} to {}",
+                            path.path().display(),
+                            dir.display()
+                        );
+                    }
                 } else {
                     fs::rename(&path.path(), &dir)?;
                 }
