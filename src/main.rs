@@ -1,6 +1,7 @@
 use audiotags::Tag;
 use clap::Parser;
 use regex::Regex;
+use std::any::Any;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
@@ -27,6 +28,14 @@ struct Args {
     /// Enable Metadata refresh
     #[arg(short, long, required = false)]
     metadata: bool,
+}
+
+struct Info {
+    artist: String,
+    album: String,
+    track: String,
+    song: String,
+    ext: String,
 }
 
 fn main() -> Result<(), Error> {
@@ -59,58 +68,77 @@ fn main() -> Result<(), Error> {
             println!("Skipping directory {}", path.path().display())
         } else {
             let filename = filename.to_str().unwrap();
-            if args.metadata {
+            let info: Option<Info> = if args.metadata {
                 let tag = Tag::new().read_from_path(path.path()).unwrap();
-                let artist = tag.artist().unwrap_or("");
-                let album = tag.album_title().unwrap_or("");
-                let track = tag.track_number().unwrap_or(0);
-                let song = tag.title().unwrap_or("");
-                println!("Filename : {}", filename);
-                println!("Artist   : {}", artist);
-                println!("Album    : {}", album);
-                println!("Track    : {:?}", track);
-                println!("Song     : {}", song);
+                let artist = String::from(tag.artist().unwrap_or(""));
+                let album = String::from(tag.album_title().unwrap_or(""));
+                let track = format!("{}", tag.track_number().unwrap_or(0));
+                let song = String::from(tag.title().unwrap_or(""));
+                let ext = String::from(if filename.ends_with(".mp3") {
+                    "mp3"
+                } else {
+                    "flac"
+                });
+                Some(Info {
+                    artist,
+                    album,
+                    track,
+                    song,
+                    ext,
+                })
             } else {
                 let captures = filename_regex.captures(filename);
                 if let Some(captures) = captures {
-                    let artist = captures.get(1).map_or("", |m| m.as_str());
-                    let album = captures.get(2).map_or("", |m| m.as_str());
-                    let track = captures.get(3).map_or("", |m| m.as_str());
-                    let song = captures.get(4).map_or("", |m| m.as_str());
-                    let ext = captures.get(5).map_or("", |m| m.as_str());
-                    println!("Filename : {}", filename);
-                    println!("Artist   : {}", artist);
-                    println!("Album    : {}", album);
-                    println!("Track    : {}", track);
-                    println!("Song     : {}", song);
-                    println!("Extension: {}\n", ext);
-
-                    let mut dir = PathBuf::from(&output_dir);
-                    dir.push(artist);
-                    if !directories.contains_key(&dir) {
-                        //mkdir dir
-                        eprintln!("Make dir {}", dir.display());
-                        fs::create_dir(&dir)?;
-                        directories.insert(dir, true);
-                    }
-                    let mut dir = PathBuf::from(&output_dir);
-                    dir.push(artist);
-                    dir.push(album);
-                    if !directories.contains_key(&dir) {
-                        //mkdir dir
-                        eprintln!("Make dir {}", dir.display());
-                        fs::create_dir(&dir)?;
-                        directories.insert(dir.clone(), true);
-                    }
-                    dir.push(format!("{track} {song}.{ext}"));
-
-                    if args.copy {
-                        fs::copy(&path.path(), &dir)?;
-                    } else {
-                        fs::rename(&path.path(), &dir)?;
-                    }
+                    let artist = String::from(captures.get(1).map_or("", |m| m.as_str()));
+                    let album = String::from(captures.get(2).map_or("", |m| m.as_str()));
+                    let track = String::from(captures.get(3).map_or("", |m| m.as_str()));
+                    let song = String::from(captures.get(4).map_or("", |m| m.as_str()));
+                    let ext = String::from(captures.get(5).map_or("", |m| m.as_str()));
+                    Some(Info {
+                        artist,
+                        album,
+                        track,
+                        song,
+                        ext,
+                    })
                 } else {
                     eprintln!("Pattern not mached for file {} ", path.path().display());
+                    None
+                }
+            };
+            if let Some(info) = info {
+                let (artist, album, track, song, ext) =
+                    (info.artist, info.album, info.track, info.song, info.ext);
+                println!("Filename : {}", filename);
+                println!("Artist   : {}", artist);
+                println!("Album    : {}", album);
+                println!("Track    : {}", track);
+                println!("Song     : {}", song);
+                println!("Extension: {}\n", ext);
+
+                let mut dir = PathBuf::from(&output_dir);
+                dir.push(&artist);
+                if !directories.contains_key(&dir) {
+                    //mkdir dir
+                    eprintln!("Make dir {}", dir.display());
+                    fs::create_dir(&dir)?;
+                    directories.insert(dir, true);
+                }
+                let mut dir = PathBuf::from(&output_dir);
+                dir.push(&artist);
+                dir.push(&album);
+                if !directories.contains_key(&dir) {
+                    //mkdir dir
+                    eprintln!("Make dir {}", dir.display());
+                    fs::create_dir(&dir)?;
+                    directories.insert(dir.clone(), true);
+                }
+                dir.push(format!("{track} {song}.{ext}"));
+
+                if args.copy {
+                    fs::copy(&path.path(), &dir)?;
+                } else {
+                    fs::rename(&path.path(), &dir)?;
                 }
             }
         }
